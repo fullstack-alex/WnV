@@ -25,7 +25,7 @@ class Position
 
         bool equals(Position position)
         {
-            return x == position.x && y == position.y;
+            return this->x == position.x && this->y == position.y;
         }
 
         void print()
@@ -46,27 +46,15 @@ class MapObject
 {
     public:
         Position position;
-        bool isWalkable;
+        bool isWalkable = false;
         mapObjectType type;
 
-        MapObject(mapObjectType type, Position position)
-        {
-            this->position = position;
-            this->type = type;
-            isWalkable = type == earth;
-        }
-};
-
-class Character: public MapObject
-{
-    public:
-        int hp;
-        int strength;
-        int defense;
-        int medicine;
-
-        Character(mapObjectType type, Position position) : MapObject(type, position)
+        MapObject()
         {}
+        MapObject(mapObjectType type)
+        {
+            this->type = type;
+        }
 };
 
 enum movement   //seems unnecessary but its easier to change movements in the future (if needed)
@@ -81,40 +69,58 @@ enum movement   //seems unnecessary but its easier to change movements in the fu
     downrightMovement
 };
 
+class Character: public MapObject
+{
+    public:
+        vector<movement> moves;
+
+        Character() : MapObject(character)
+        {}
+};
+
+class Attackable
+{
+    public:
+        int hp;
+        int strength;
+        int defense;
+        int medicine;
+};
+
 enum supportingRace
 {
     vampire,
     werewolf
 };
 
-class Vampire : public Character
+class Vampire : public Character, public Attackable
 {
     public:
-        movement moves[8] {upMovement, downMovement, leftMovement, rightMovement, upleftMovement, uprightMovement, downleftMovement, downrightMovement};
+        Vampire()
+        {
+            moves = {upMovement, downMovement, leftMovement, rightMovement, upleftMovement, uprightMovement, downleftMovement, downrightMovement};
+        }
+};
 
-        Vampire(mapObjectType type, Position position) : Character(type, position)
-        {}
-    };
-
-class Werewolf : public Character
+class Werewolf : public Character, public Attackable
 {
     public:
-        movement moves[4] {upMovement, downMovement, leftMovement, rightMovement};
-
-        Werewolf(mapObjectType type, Position position) : Character(type, position)
-        {}
+        Werewolf()
+        {
+            moves = {upMovement, downMovement, leftMovement, rightMovement};
+        }
 };
 
 class Avatar : public Character
 {
     public:
-        movement moves[4] {upMovement, downMovement, leftMovement, rightMovement};
         int potions = 1;
         string supportingRace;
 
-        Avatar(string supportingRace, mapObjectType type, Position position) : Character(type, position)
+        Avatar(string supportingRace)
         {
             this->supportingRace = supportingRace;
+        moves = {upMovement, downMovement, leftMovement, rightMovement};
         }
 };
 
@@ -153,7 +159,7 @@ class Map
     public:
         int x;
         int y;
-        vector<MapObject> mapElements;
+        vector<MapObject> elements;
 
         Map(int x, int y) // Constructor
         {     
@@ -165,34 +171,6 @@ class Map
 
             this->x = x;
             this->y = y;
-            fillMap();
-        }
-
-        void fillMap()
-        {
-            for (int i = 0; i < x; i++)
-            {
-                for (int j = 0; j < y; j++)
-                {
-                    int randomNumber = getRandomNumberInRange(0, 100);
-                    Position position;
-                    position.x = i;
-                    position.y = j;
-
-                    if (randomNumber <= 80)
-                    {
-                        mapElements.push_back(MapObject(earth, position));
-                    }
-                    else if (randomNumber <= 90)
-                    {
-                        mapElements.push_back(MapObject(water, position));
-                    }
-                    else
-                    {
-                        mapElements.push_back(MapObject(tree, position));
-                    }
-                }
-            }
         }
 
         void print(bool showCoordinates = false)
@@ -201,11 +179,11 @@ class Map
             {
                 if (showCoordinates)
                 {
-                    cout << "<" << mapElements[i].position.x << "," << mapElements[i].position.y << ">  ";  //test only
+                    cout << "<" << elements[i].position.x << "," << elements[i].position.y << ">  ";  //test only
                 }
                 else
                 {
-                    cout << mapElements[i].type;
+                    cout << elements[i].type;
                 }
 
                 if ((i + 1) % x == 0)
@@ -234,17 +212,54 @@ class Game
         vector<Vampire> vampireTeam;
         vector<Werewolf> werewolfTeam;
         
-        Game(int x, int y, string avatarSupportingRace) : map(x,y), avatar(avatarSupportingRace, character, Position(x, 0))
+        Game(int x, int y, string avatarSupportingRace) : map(x,y), avatar(avatarSupportingRace)
         {
             for (int i = 0; i < (x*y) / 15; i++)
             {
-                Vampire vampire(character, getValidPosition());
+                Vampire vampire;
+                vampire.hp = 10;
+                vampire.strength = getRandomNumberInRange(1,3);
+                vampire.defense = getRandomNumberInRange(1,2);
                 vampire.medicine = getRandomNumberInRange(0,2);
                 vampireTeam.push_back(vampire);
 
-                Werewolf werewolf(character, getValidPosition());
+                Werewolf werewolf;
+                werewolf.hp = 10;
+                werewolf.strength = getRandomNumberInRange(1,3);
+                werewolf.defense = getRandomNumberInRange(1,2);
                 werewolf.medicine = getRandomNumberInRange(0,2);
                 werewolfTeam.push_back(werewolf);
+            }
+        }
+
+        void fillMap()
+        {
+            for (int i = 0; i < map.x; i++)
+            {
+                for (int j = 0; j < map.y; j++)
+                {
+                    int randomNumber = getRandomNumberInRange(0, 100);
+                    Position position;
+                    position.x = i;
+                    position.y = j;
+                    MapObject mapObj;
+
+                    if (randomNumber <= 80)
+                    {
+                        mapObj.type = earth;
+                        map.elements.push_back(mapObj);
+                    }
+                    else if (randomNumber <= 90)
+                    {
+                        mapObj.type = water;
+                        map.elements.push_back(mapObj);
+                    }
+                    else
+                    {
+                        mapObj.type = tree;
+                        map.elements.push_back(mapObj);
+                    }
+                }
             }
         }
 
@@ -260,8 +275,8 @@ class Game
                 cout << "You support Werewolves.";
             }
             cout << "\n\n";
-            map.print();
-            cout  << endl << endl << "Available inputs: (case-insensitive)" << endl <<"W - UP   S - DOWN    A - LEFT    D - RIGHT" << endl << "EXIT - QUIT GAME" << endl << endl;
+            // map.print();
+            cout  << endl << endl << "Available inputs: (case-insensitive)" << endl <<"W - UP   S - DOWN    A - LEFT    D - RIGHT" << endl << "PAUSE - PAUSE GAME" << endl << "EXIT - QUIT GAME" << endl << endl;
         }
 
         Position getValidPosition()
@@ -314,6 +329,7 @@ class Game
                     if (vampireTeam[i].position.equals(positions[j]))
                     {
                         positions.erase(positions.begin() + j);
+                        break;
                     }
                 }
             }
@@ -325,17 +341,22 @@ class Game
                     if (werewolfTeam[i].position.equals(positions[j]))
                     {
                         positions.erase(positions.begin() + j);
+                        break;
                     }
                 }
             }
 
-            for (int i = 0; i < map.mapElements.size(); i++)
+            for (int i = 0; i < map.elements.size(); i++)
             {
                 for (int j = 0; j < positions.size(); j++)
                 {
-                    if (map.mapElements[i].position.equals(positions[j]) && map.mapElements[i].type != earth)
+                    if (map.elements[i].position.equals(positions[j]))
                     {
-                        positions.erase(positions.begin() + j);
+                        if(map.elements[i].type != earth)
+                        {
+                            positions.erase(positions.begin() + j);
+                        }
+                        break;
                     }
                 }
             }
@@ -415,33 +436,57 @@ int main(int argc, char** argv)
     }
 
     Game game(getIntFromArgument(argv[1]), getIntFromArgument(argv[2]), avatarSupportingRace);
+    game.fillMap();
 
     system("clear");
     game.print();
 
+    bool isGamePaused = false;
     while(isPlaying)
     {
         cin >> input;
         transform(input.begin(), input.end(), input.begin(), ::tolower);
 
-        if(input == "exit") {
-            // system("stty cooked");
-            exit(0);
-        } 
-        else if (input == "pause")
+        if(isGamePaused)
         {
-            system("clear");
-        }
-        else if (input != "standby")
-        {
-            system("clear");
-
-            if (input == "w" || input == "s" || input == "a" || input == "d")
+           if (input == "resume")
             {
-                cout << "Arrow is pressed\n\n";
+                isGamePaused = false;
+            } 
+            else
+            {
+                system("clear");
+                cout << "\nActive Vampires: " << game.vampireTeam.size() << "\nActive Werewolves: " << game.vampireTeam.size() << "\nAvailable potions: " << game.avatar.potions << "\nType \"resume\" continue.\n\n";
             }
-            game.print();
-            input = "standby";
+        }
+        
+        if(!isGamePaused)
+        {
+            if(input == "exit") 
+            {
+                isPlaying = false;
+            } 
+            else if (input == "pause")
+            {
+                isGamePaused = true;
+                system("clear");
+                cout << "\nActive Vampires: " << game.vampireTeam.size() << "\nActive Werewolves: " << game.vampireTeam.size() << "\nAvailable potions: " << game.avatar.potions << "\nType \"resume\" continue.\n\n";
+            }
+            else if (input != "standby")
+            {
+                system("clear");
+
+                if (input == "w" || input == "s" || input == "a" || input == "d")
+                {
+                    cout << "Arrow is pressed\n\n";
+                }
+                game.print();
+                input = "standby";
+            }
+            else if (input == " ")
+            {
+                //next turn
+            }
         }
     }
 
