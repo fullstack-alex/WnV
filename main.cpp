@@ -842,10 +842,6 @@ class Game
                     }
                 }
             }
-            else if (act == obtain)
-            {
-
-            }
         }
 
         bool isAllyVampire(Position position, action act, int strength)
